@@ -1,4 +1,5 @@
 import type { ChallengeSpec, Landmark, NpcSpec, Zone } from '../types';
+import { EXTRA_NPCS } from '../npcs';
 
 import { sindhu } from './sindhu';
 import { meluhha } from './meluhha';
@@ -16,6 +17,19 @@ import { maratha } from './maratha';
 export const ZONES: Zone[] = [sindhu, meluhha, kosala, setuLanka, kurukshetra, magadha, chola, konark, hampi, agra, maratha].sort(
   (a, b) => a.chapter - b.chapter,
 );
+
+/**
+ * Fold in the wider population.
+ *
+ * Each zone file carries the characters its teaching depends on; `npcs.ts`
+ * carries everybody else. Merging here rather than in eleven separate files
+ * keeps the two concerns readable and means adding a villager is a one-file
+ * change.
+ */
+for (const zone of ZONES) {
+  const extra = EXTRA_NPCS[zone.id];
+  if (extra && extra.length > 0) zone.npcs = [...zone.npcs, ...extra];
+}
 
 const BY_ID = new Map(ZONES.map((z) => [z.id, z]));
 
@@ -115,6 +129,7 @@ export function allNpcs(): NpcRef[] {
 
 export const TOTAL_CHALLENGES = ZONES.reduce((n, z) => n + z.challenges.length, 0);
 export const TOTAL_LANDMARKS = ZONES.reduce((n, z) => n + z.landmarks.length, 0);
+export const TOTAL_NPCS = ZONES.reduce((n, z) => n + z.npcs.length, 0);
 
 export {
   sindhu,

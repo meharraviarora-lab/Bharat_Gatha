@@ -9,6 +9,7 @@ import { buildLandmark } from './architecture';
 import { Kit } from './architecture/kit';
 import { stoneMaterial, glowMaterial, shade } from './Materials';
 import { Rng } from '../core/Rng';
+import { Chariot } from '../vehicles/Chariot';
 import { ZONES, zoneAt, worldPos } from '../content/zones';
 import type { Landmark, Zone, ChallengeSpec, NpcSpec } from '../content/types';
 
@@ -76,6 +77,7 @@ export class World {
 
   readonly landmarks: PlacedLandmark[] = [];
   readonly interactables: Interactable[] = [];
+  readonly chariots: Chariot[] = [];
 
   private readonly bobbers: Bobber[] = [];
   private readonly monumentMeshes: THREE.Mesh[] = [];
@@ -106,6 +108,8 @@ export class World {
       for (const challenge of zone.challenges) this.placeChallengeMarker(zone, challenge);
       for (const npc of zone.npcs) this.placeNpc(zone, npc, opts.seed);
     }
+
+    this.spawnChariots(opts.seed);
 
     const floraOpts = defaultVegetationOptions(opts.seed);
     const scale = opts.floraScale ?? 1;
@@ -273,6 +277,60 @@ export class World {
     });
   }
 
+  /**
+   * Park chariots where a player would look for one: by the landing terrace, and
+   * by a gate, bazaar or village on the other side of each region.
+   */
+  private spawnChariots(seed: string): void {
+    const rng = new Rng(`${seed}:chariots`);
+    const PREFERRED = new Set(['vimanaPad', 'cityGate', 'bazaarStreet', 'villageCluster', 'harbour', 'hermitage']);
+
+    for (const zone of ZONES) {
+      const candidates = zone.landmarks.filter((l) => PREFERRED.has(l.kind));
+      const chosen = candidates.length >= 2 ? rng.sample(candidates, 2) : zone.landmarks.slice(0, 2);
+
+      chosen.forEach((landmark, index) => {
+        const placed = this.landmarks.find((l) => l.id === landmark.id);
+        const base = placed
+          ? { x: placed.position.x, z: placed.position.z, radius: placed.radius }
+          : { x: zone.center[0], z: zone.center[1], radius: 20 };
+
+        // Stand off from the monument so the chariot is not inside it.
+        const angle = rng.range(0, Math.PI * 2);
+        const dist = base.radius + rng.range(10, 20);
+        const spot = this.terrain.findGround(base.x + Math.cos(angle) * dist, base.z + Math.sin(angle) * dist, 70);
+
+        const chariot = new Chariot(
+          `${zone.id}-chariot-${index}`,
+          zone.id,
+          spot.x,
+          spot.z,
+          rng.range(0, Math.PI * 2),
+          this.terrain,
+          this.collision,
+          zone.palette.stone,
+          rng,
+        );
+        this.chariots.push(chariot);
+        this.group.add(chariot.group);
+      });
+    }
+  }
+
+  /** Closest chariot within reach, for mounting. */
+  nearestChariot(point: THREE.Vector3, maxDistance = 5.5): Chariot | null {
+    let best: Chariot | null = null;
+    let bestD = maxDistance;
+    for (const c of this.chariots) {
+      const d = Math.hypot(c.position.x - point.x, c.position.z - point.z);
+      if (d < bestD) {
+        bestD = d;
+        best = c;
+      }
+    }
+    return best;
+  }
+
   // ------------------------------------------------------------------ queries
 
   /** Terrain height only. */
@@ -357,18 +415,25 @@ export class World {
       b.mesh.position.y = b.baseY + Math.sin(elapsed * b.speed + b.phase) * 0.3;
       b.mesh.rotation.y += dt * b.spin;
     }
+    // The ridden chariot is driven by the player; the rest just settle.
+    for (const c of this.chariots) {
+      if (!c.mounted) c.update(dt, null);
+    }
   }
 
-  get stats(): { monuments: number; colliders: number; flora: number; interactables: number } {
+  get stats(): { monuments: number; colliders: number; flora: number; interactables: number; chariots: number } {
     return {
       monuments: this.monumentMeshes.length,
       colliders: this.collision.count,
       flora: this.vegetation.instanceCount,
       interactables: this.interactables.length,
+      chariots: this.chariots.length,
     };
   }
 
   dispose(): void {
+    for (const c of this.chariots) c.dispose();
+    this.chariots.length = 0;
     for (const mesh of this.monumentMeshes) mesh.geometry.dispose();
     for (const geo of this.personGeometries.values()) geo.dispose();
     this.personGeometries.clear();

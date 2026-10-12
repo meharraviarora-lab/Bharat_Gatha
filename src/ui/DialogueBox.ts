@@ -141,13 +141,17 @@ export class DialogueBox {
 
       this.keyHandler = (event: KeyboardEvent) => {
         if (event.key === 'Escape') {
+          // Stop here, or the same press also reaches the game and opens the
+          // pause menu behind the conversation we just closed.
           event.preventDefault();
+          event.stopPropagation();
           finish(false);
           return;
         }
         if (event.key === 'Enter' || event.key === ' ') {
           if (pendingAdvance) {
             event.preventDefault();
+            event.stopPropagation();
             const advance = pendingAdvance;
             pendingAdvance = null;
             advance();

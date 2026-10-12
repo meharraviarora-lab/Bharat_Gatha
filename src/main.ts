@@ -18,14 +18,16 @@ import { QuestionBank } from './quiz/QuestionBank';
 import { QuizEngine } from './quiz/QuizEngine';
 
 import { Hud, type CompassPoi } from './ui/Hud';
+import { Minimap, type MinimapMarker } from './ui/Minimap';
 import { QuizModal } from './ui/QuizModal';
 import { DialogueBox } from './ui/DialogueBox';
 import { buildPanel, button, closeOverlay, el, mountOverlay, overlayOpen } from './ui/overlay';
 
-import { ZONES, getZone } from './content/zones';
+import { ZONES, TOTAL_NPCS, getZone } from './content/zones';
 import { CODEX, getCodex, validateContent } from './content/codex';
 import { validateQuestions, QUESTION_COUNT } from './content/questions';
 import type { Interactable } from './world/World';
+import { CHARIOT_DECK_HEIGHT, type Chariot } from './vehicles/Chariot';
 import type { ChallengeSpec, Zone } from './content/types';
 
 /**
@@ -59,11 +61,15 @@ class Game {
 
   private world!: World;
   private player!: PlayerController;
+  private minimap!: Minimap;
   private vimanaMesh: THREE.Mesh | null = null;
 
   private currentZone: Zone | null = null;
   /** Heading of the opening flight, so the craft faces where it is going. */
   private rideHeading = 0;
+  private ridingChariot: Chariot | null = null;
+  /** Who we have already met, so a second conversation opens somewhere new. */
+  private readonly spokenTo = new Set<string>();
   private scanTarget: string | null = null;
   private scanProgress = 0;
   private running = false;
@@ -85,7 +91,9 @@ class Game {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     viewport.appendChild(this.renderer.domElement);
 
-    this.camera = new THREE.PerspectiveCamera(72, 1, 0.1, WORLD_HALF * 3.4);
+    // A little wider than first person: the point of the over-the-shoulder view
+    // is seeing more of where you are heading.
+    this.camera = new THREE.PerspectiveCamera(78, 1, 0.1, WORLD_HALF * 3.4);
     this.scene.add(this.camera);
 
     this.input = new Input(this.renderer.domElement);
@@ -116,6 +124,9 @@ class Game {
     });
 
     bus.on('vidya:gain', () => this.hud.setVidya(save.profile.vidya));
+    bus.on('codex:unlock', () => this.refreshMapMarkers());
+    bus.on('challenge:finish', () => this.refreshMapMarkers());
+    bus.on('zone:enter', () => this.refreshMapMarkers());
 
     this.renderer.domElement.addEventListener('click', () => {
       if (this.running && !this.paused && !overlayOpen() && !this.dialogue.isOpen) this.input.requestLock();
@@ -149,14 +160,22 @@ class Game {
     await nextFrame();
 
     this.player = new PlayerController(this.camera, this.world, this.input, save.settings);
+    this.scene.add(this.player.avatar.group);
     this.buildVimana();
+
+    onProgress(0.84, 'Drawing the map…');
+    await nextFrame();
+    const minimapHost = document.getElementById('minimap');
+    if (!minimapHost) throw new Error('[boot] #minimap is missing');
+    this.minimap = new Minimap(this.world.terrain, minimapHost);
+    this.refreshMapMarkers();
 
     onProgress(0.9, 'Tuning the tanpura…');
     await nextFrame();
 
     const stats = this.world.stats;
     console.info(
-      `[world] ${stats.monuments} monuments · ${stats.colliders} colliders · ${stats.flora} plants · ${stats.interactables} interactables · ${CODEX.length} codex entries · ${QUESTION_COUNT} authored questions`,
+      `[world] ${stats.monuments} monuments · ${stats.colliders} colliders · ${stats.flora} plants · ${stats.interactables} interactables · ${stats.chariots} chariots · ${TOTAL_NPCS} people · ${CODEX.length} codex entries · ${QUESTION_COUNT} authored questions`,
     );
 
     onProgress(1, 'Ready');
@@ -313,6 +332,8 @@ class Game {
 
     if (!blocked) {
       this.handleHotkeys();
+      // The chariot must move before the player, who rides on it.
+      this.updateVehicle(dt);
       this.player.update(dt);
       this.updateInteraction(dt);
     } else {
@@ -322,6 +343,7 @@ class Game {
 
     this.world.update(dt, this.camera, this.elapsed);
     this.updateVimana();
+    this.updateMinimap();
     this.updateHud(blocked);
     this.trackStats(dt);
 
@@ -348,6 +370,52 @@ class Game {
       this.openHelp();
       return;
     }
+    if (this.input.justPressed('cameraToggle')) {
+      const mode = this.player.toggleCamera();
+      this.hud.toast('info', mode === 'third' ? 'Third person' : 'First person', 'Press V to switch back.', '🎥', 2500);
+      return;
+    }
+  }
+
+  /** Drive the chariot the player is standing in. */
+  private updateVehicle(dt: number): void {
+    const chariot = this.ridingChariot;
+    if (!chariot) return;
+
+    const throttle = (this.input.pressed('forward') ? 1 : 0) + (this.input.pressed('back') ? -1 : 0);
+    const steer = (this.input.pressed('right') ? 1 : 0) + (this.input.pressed('left') ? -1 : 0);
+    chariot.update(dt, { throttle, steer, handbrake: this.input.pressed('jump') });
+
+    // Swing the camera back behind the chariot once it is moving, unless the
+    // player is actively looking around. Without this the camera keeps whatever
+    // angle it had when you mounted and you end up driving sideways.
+    const looking = Math.abs(this.input.mouse.dx) > 1e-4;
+    if (!looking && Math.abs(chariot.speed) > 1) {
+      const rate = dt * (1.2 + Math.abs(chariot.speed) * 0.09);
+      this.player.yaw = approachAngle(this.player.yaw, chariot.yaw, rate);
+    }
+
+    this.player.vehicle = { position: chariot.riderPosition, yaw: chariot.yaw, deckHeight: CHARIOT_DECK_HEIGHT };
+  }
+
+  private mountChariot(chariot: Chariot): void {
+    chariot.mount();
+    this.ridingChariot = chariot;
+    this.player.vehicle = { position: chariot.riderPosition, yaw: chariot.yaw, deckHeight: CHARIOT_DECK_HEIGHT };
+    this.player.rig.reset();
+    this.hud.toast('info', 'Chariot', 'W/S throttle · A/D steer · Space brake · E to step down.', '🐎', 6000);
+  }
+
+  private dismountChariot(): void {
+    const chariot = this.ridingChariot;
+    if (!chariot) return;
+    chariot.dismount();
+    this.ridingChariot = null;
+    this.player.vehicle = null;
+    const spot = chariot.dismountPoint();
+    this.player.placeAt(new THREE.Vector3(spot.x, spot.y + 0.2, spot.z));
+    this.player.yaw = chariot.yaw;
+    this.player.rig.reset();
   }
 
   private updateInteraction(dt: number): void {
@@ -383,9 +451,23 @@ class Game {
       this.hud.setScan(null);
     }
 
-    // --- E to interact.
-    const near = this.world.nearestInteractable(this.camera.position);
-    if (near && !scanning) {
+    // --- riding: the only interaction available is stepping down.
+    if (this.ridingChariot) {
+      this.hud.setInteractPrompt('Step down from the chariot');
+      if (this.input.justPressed('interact') || this.input.justPressed('mount')) this.dismountChariot();
+      const zone = this.world.zoneAt(this.player.position.x, this.player.position.z);
+      if (zone && zone.id !== this.currentZone?.id) this.enterZone(zone, false);
+      return;
+    }
+
+    // --- E to interact. A chariot you are standing next to wins, because that
+    // is almost always what you meant.
+    const chariot = this.world.nearestChariot(this.player.focusPosition, 5.5);
+    const near = this.world.nearestInteractable(this.player.focusPosition);
+    if (chariot && !scanning) {
+      this.hud.setInteractPrompt('Ride the chariot');
+      if (this.input.justPressed('interact') || this.input.justPressed('mount')) this.mountChariot(chariot);
+    } else if (near && !scanning) {
       this.hud.setInteractPrompt(near.label);
       if (this.input.justPressed('interact')) void this.interact(near);
     } else {
@@ -417,7 +499,7 @@ class Game {
     audio.click();
     switch (target.kind) {
       case 'npc':
-        this.talkToNpc(target);
+        await this.talkToNpc(target);
         break;
       case 'pad':
         this.openFastTravel(target);
@@ -428,15 +510,38 @@ class Game {
     }
   }
 
-  private talkToNpc(target: Interactable): void {
+  /**
+   * Talk to someone. Their lines become a short conversation rather than a
+   * toast — a person you can stand and listen to reads as a person, and a
+   * notification does not.
+   */
+  private async talkToNpc(target: Interactable): Promise<void> {
     const npc = target.npc;
     if (!npc) return;
-    const line = npc.lines[Math.floor(Math.random() * npc.lines.length)] ?? '';
-    this.hud.toast('info', `${npc.name} — ${npc.role}`, line, npc.icon, 8000);
+    if (this.dialogue.isOpen) return;
+
+    const spoken = this.spokenTo.has(npc.id);
+    this.spokenTo.add(npc.id);
+
+    // Start at a different line each time, so a second visit is not a rerun.
+    const start = spoken ? Math.floor(Math.random() * npc.lines.length) : 0;
+    const ordered = [...npc.lines.slice(start), ...npc.lines.slice(0, start)];
+    const nodes = ordered.map((text, i) => ({
+      id: `line-${i}`,
+      text,
+      ...(i === ordered.length - 1 ? { end: true as const } : { next: `line-${i + 1}` }),
+    }));
+
+    await this.dialogue.run({ name: npc.name, role: npc.role, icon: npc.icon }, nodes);
+
+    if (!spoken) {
+      save.addVidya(15);
+      bus.emit('vidya:gain', { amount: 15, reason: `Spoke with ${npc.name}` });
+    }
     if (npc.unlocks && save.unlockCodex(npc.unlocks)) {
       const entry = getCodex(npc.unlocks);
       save.addVidya(25);
-      this.hud.toast('codex', `Codex: ${entry?.title ?? npc.unlocks}`, 'Learned from a conversation.', '📖', 6000);
+      this.hud.toast('codex', `Codex: ${entry?.title ?? npc.unlocks}`, `Learned from ${npc.name}.`, '📖', 6000);
       this.refreshObjectives();
     }
   }
@@ -617,6 +722,63 @@ class Game {
 
   // ------------------------------------------------------------------- hud
 
+  /**
+   * Rebuild the static map markers. Cheap enough to redo whenever discovery
+   * state changes, which keeps it honest without any incremental bookkeeping.
+   */
+  private refreshMapMarkers(): void {
+    if (!this.minimap) return;
+    const markers: MinimapMarker[] = [];
+
+    for (const lm of this.world.landmarks) {
+      if (!lm.codexId) continue;
+      const discovered = save.zone(lm.zoneId).discovered;
+      markers.push({
+        x: lm.position.x,
+        z: lm.position.z,
+        kind: 'landmark',
+        label: lm.name,
+        done: save.hasCodex(lm.codexId),
+        dim: !discovered,
+      });
+    }
+
+    for (const it of this.world.interactables) {
+      const discovered = save.zone(it.zoneId).discovered;
+      if (it.kind === 'challenge' && it.challenge) {
+        markers.push({
+          x: it.position.x,
+          z: it.position.z,
+          kind: 'challenge',
+          label: it.challenge.name,
+          done: save.zone(it.zoneId).challenges.includes(it.challenge.id),
+          dim: !discovered,
+        });
+      } else if (it.kind === 'npc') {
+        markers.push({ x: it.position.x, z: it.position.z, kind: 'npc', dim: !discovered });
+      } else if (it.kind === 'pad') {
+        markers.push({ x: it.position.x, z: it.position.z, kind: 'pad', dim: !discovered });
+      }
+    }
+
+    this.minimap.setStaticMarkers(markers);
+  }
+
+  private updateMinimap(): void {
+    const wheel = this.input.mouse.wheel;
+    if (wheel !== 0) {
+      const range = this.minimap.adjustZoom(wheel > 0 ? 1 : -1);
+      this.hud.toast('info', 'Map range', range, '🗺️', 1400);
+    }
+    const dynamic: MinimapMarker[] = this.world.chariots.map((c) => ({
+      x: c.position.x,
+      z: c.position.z,
+      kind: 'chariot' as const,
+      yaw: c.yaw,
+    }));
+    this.minimap.update(this.player.position.x, this.player.position.z, this.player.yaw, dynamic);
+  }
+
   private updateHud(blocked: boolean): void {
     if (blocked) {
       this.hud.setCrosshair('hidden');
@@ -642,8 +804,17 @@ class Game {
 
     // Crosshair state.
     if (this.input.mouse.right) this.hud.setCrosshair('scan');
-    else if (this.world.nearestInteractable(this.camera.position)) this.hud.setCrosshair('interact');
+    else if (this.world.nearestChariot(this.player.focusPosition, 5.5) || this.world.nearestInteractable(this.player.focusPosition))
+      this.hud.setCrosshair('interact');
     else this.hud.setCrosshair('idle');
+
+    if (this.ridingChariot) {
+      const kmh = Math.round(Math.abs(this.ridingChariot.speed) * 3.6);
+      this.hud.setFlightHint(
+        `Chariot · <strong>${kmh} km/h</strong> · <strong>W/S</strong> throttle · <strong>A/D</strong> steer · <strong>Space</strong> brake · <strong>E</strong> to step down`,
+      );
+      return;
+    }
 
     // Flight guidance.
     switch (this.player.state) {
@@ -1011,6 +1182,8 @@ const CONTROLS: Array<[string, string[]]> = [
   ['Crouch', ['Ctrl']],
   ['Jump / drop / open canopy', ['Space']],
   ['Interact', ['E']],
+  ['Mount / leave a chariot', ['R']],
+  ['Switch camera', ['V']],
   ['Scan a monument', ['Right mouse']],
   ['Map and fast travel', ['M']],
   ['Codex', ['J']],
@@ -1051,6 +1224,15 @@ function sliderRow(label: string, value: number, min: number, max: number, onCha
   input.addEventListener('input', () => onChange(Number(input.value)));
   row.appendChild(input);
   return row;
+}
+
+/** Rotate towards an angle the short way round. */
+function approachAngle(current: number, target: number, maxDelta: number): number {
+  let diff = target - current;
+  while (diff > Math.PI) diff -= Math.PI * 2;
+  while (diff < -Math.PI) diff += Math.PI * 2;
+  const step = Math.min(Math.abs(diff), Math.max(0, maxDelta) * (1 + Math.abs(diff)));
+  return current + Math.sign(diff) * step;
 }
 
 function escapeHtml(text: string): string {

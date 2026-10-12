@@ -5,6 +5,8 @@ import type { Settings } from '../core/Save';
 import { SEA_LEVEL, WORLD_HALF } from '../world/Terrain';
 import { audio } from '../core/Audio';
 import { clamp } from '../core/Noise';
+import { PlayerAvatar, type AvatarPose } from './PlayerAvatar';
+import { CameraRig, type CameraMode } from './CameraRig';
 
 /**
  * First-person movement.
@@ -62,6 +64,15 @@ export class PlayerController {
   pitch = 0;
   state: PlayerState = 'ground';
 
+  /** Which way the character's body is facing — follows movement, not the camera. */
+  bodyYaw = 0;
+
+  readonly avatar = new PlayerAvatar();
+  readonly rig: CameraRig;
+
+  /** Set while riding a chariot; the vehicle drives position and facing. */
+  vehicle: { position: THREE.Vector3; yaw: number; deckHeight: number } | null = null;
+
   /** Metres walked, for the report card. */
   distanceWalked = 0;
   /** Set while the glider canopy is deployed, so the HUD can show it. */
@@ -105,6 +116,18 @@ export class PlayerController {
     this.settings = settings;
     this.baseFov = camera.fov;
     this.fovTarget = camera.fov;
+    this.rig = new CameraRig(camera, world.collision, world.terrain);
+  }
+
+  /** Swap between over-the-shoulder and first person. */
+  toggleCamera(): CameraMode {
+    const mode = this.rig.toggle();
+    this.avatar.setVisible(mode === 'third');
+    return mode;
+  }
+
+  get cameraMode(): CameraMode {
+    return this.rig.mode;
   }
 
   applySettings(settings: Settings): void {
@@ -126,6 +149,8 @@ export class PlayerController {
       this.yaw = PlayerController.yawTowards(lookAt.x - position.x, lookAt.z - position.z);
       this.pitch = 0;
     }
+    this.bodyYaw = this.yaw;
+    this.rig.reset();
     this.syncCamera(0);
   }
 
@@ -141,6 +166,7 @@ export class PlayerController {
     this.velocity.set(0, 0, 0);
     this.ridePosition.copy(ride.from);
     this.position.copy(ride.from);
+    this.rig.reset();
     // Face along the flight path so the island is in view from the first frame.
     const dir = ride.to.clone().sub(ride.from).normalize();
     this.yaw = PlayerController.yawTowards(dir.x, dir.z);
@@ -186,6 +212,8 @@ export class PlayerController {
     this.state = 'ground';
     this.gliderOpen = false;
     this.ride = null;
+    this.vehicle = null;
+    this.rig.reset();
     audio.bell();
     this.syncCamera(0);
   }
@@ -194,6 +222,17 @@ export class PlayerController {
 
   update(dt: number): void {
     this.look(dt);
+
+    if (this.vehicle) {
+      // The chariot owns position and facing; we just ride and look around.
+      this.position.copy(this.vehicle.position);
+      this.position.y += this.vehicle.deckHeight;
+      this.bodyYaw = this.vehicle.yaw;
+      this.velocity.set(0, 0, 0);
+      this.state = 'ground';
+      this.syncCamera(dt);
+      return;
+    }
 
     switch (this.state) {
       case 'vimana':
@@ -540,30 +579,65 @@ export class PlayerController {
 
   private syncCamera(dt: number): void {
     const eye = this.crouching ? CROUCH_EYE : EYE_HEIGHT;
-    let y = this.position.y + eye;
 
-    if (this.bobAmount > 0.001) {
-      y += Math.sin(this.bobPhase * 2) * 0.045 * this.bobAmount;
-    }
+    let bob = 0;
+    if (this.bobAmount > 0.001) bob += Math.sin(this.bobPhase * 2) * 0.045 * this.bobAmount;
     if (this.landingShake > 0) {
-      y -= this.landingShake;
+      bob -= this.landingShake;
       this.landingShake = Math.max(0, this.landingShake - dt * 2.2);
     }
 
-    this.camera.position.set(this.position.x, y, this.position.z);
-
     const bobRoll = this.bobAmount > 0.001 ? Math.sin(this.bobPhase) * 0.012 * this.bobAmount : 0;
-    this.camera.rotation.set(this.pitch, this.yaw, this.roll + bobRoll, 'YXZ');
-    // 'YXZ' applies yaw then pitch then roll, which is what a head does.
-    this.camera.rotation.order = 'YXZ';
-    this.camera.rotation.x = this.pitch;
-    this.camera.rotation.y = this.yaw;
-    this.camera.rotation.z = this.roll + bobRoll;
+
+    // Point the body where it is going, not where the camera is looking. Idle,
+    // it drifts round to face the camera so the character never stands with its
+    // back to the view for long.
+    const horizontal = Math.hypot(this.velocity.x, this.velocity.z);
+    if (this.vehicle) {
+      this.bodyYaw = this.vehicle.yaw;
+    } else if (horizontal > 0.9) {
+      const moveYaw = PlayerController.yawTowards(this.velocity.x, this.velocity.z);
+      this.bodyYaw = approachAngle(this.bodyYaw, moveYaw, dt * 11);
+    } else if (this.state === 'freefall' || this.state === 'glide' || this.state === 'swim') {
+      this.bodyYaw = approachAngle(this.bodyYaw, this.yaw, dt * 6);
+    } else {
+      this.bodyYaw = approachAngle(this.bodyYaw, this.yaw, dt * 2.2);
+    }
+
+    _feet.set(this.position.x, this.position.y + bob, this.position.z);
+    this.rig.extraHeight = this.vehicle ? 0.95 : 0;
+    this.rig.extraDistance = this.vehicle ? 3.6 : 0;
+    this.rig.update(dt, _feet, eye, this.yaw, this.pitch, this.roll + bobRoll, this.input.mouse.right);
+
+    // The avatar stands on the ground, not at the camera.
+    this.avatar.group.position.set(this.position.x, this.position.y, this.position.z);
+    this.avatar.update(dt, this.pose(horizontal), horizontal, this.bodyYaw, this.pitch);
+    this.avatar.setVisible(this.rig.mode === 'third' && this.state !== 'vimana');
 
     if (dt > 0 && Math.abs(this.camera.fov - this.fovTarget) > 0.05) {
       this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, this.fovTarget, Math.min(1, dt * 6));
       this.camera.updateProjectionMatrix();
     }
+  }
+
+  private pose(horizontalSpeed: number): AvatarPose {
+    if (this.vehicle) return 'ride';
+    switch (this.state) {
+      case 'freefall':
+        return 'fall';
+      case 'glide':
+        return 'glide';
+      case 'swim':
+        return 'swim';
+      case 'vimana':
+        return 'idle';
+      default:
+        break;
+    }
+    if (!this.grounded) return this.velocity.y > 0.5 ? 'jump' : 'fall';
+    if (horizontalSpeed > WALK_SPEED + 0.6) return 'run';
+    if (horizontalSpeed > 0.45) return 'walk';
+    return 'idle';
   }
 
   /** Unit vector the camera is actually looking along. */
@@ -579,6 +653,19 @@ export class PlayerController {
 
   get eyePosition(): THREE.Vector3 {
     return this.camera.position;
+  }
+
+  /**
+   * Where the *character* is looking from. In third person this is several
+   * metres in front of the camera, and it is what interaction range must be
+   * measured against — otherwise the boom length changes how far you can reach.
+   */
+  get focusPosition(): THREE.Vector3 {
+    return _focus.set(
+      this.position.x,
+      this.position.y + (this.crouching ? CROUCH_EYE : EYE_HEIGHT),
+      this.position.z,
+    );
   }
 
   get isCrouching(): boolean {
@@ -608,3 +695,14 @@ function approach(current: number, target: number, maxDelta: number): number {
 }
 
 const _tmpA = new THREE.Vector3();
+const _feet = new THREE.Vector3();
+const _focus = new THREE.Vector3();
+
+/** Rotate `current` towards `target` the short way round. */
+function approachAngle(current: number, target: number, maxDelta: number): number {
+  let diff = target - current;
+  while (diff > Math.PI) diff -= Math.PI * 2;
+  while (diff < -Math.PI) diff += Math.PI * 2;
+  const step = Math.min(Math.abs(diff), Math.max(0.0001, maxDelta) * (1 + Math.abs(diff)));
+  return current + Math.sign(diff) * step;
+}

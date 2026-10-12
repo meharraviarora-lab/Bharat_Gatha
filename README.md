@@ -58,7 +58,11 @@ actually requires.
 |---|---|
 | Move / sprint / crouch | `W A S D` · `Shift` · `Ctrl` |
 | Jump, drop from the vimana, open the canopy | `Space` |
-| Interact | `E` |
+| Interact, talk, mount a chariot | `E` |
+| Step down from a chariot | `E` or `R` |
+| Drive a chariot | `W/S` throttle · `A/D` steer · `Space` brake |
+| Switch third/first person | `V` |
+| Zoom the map | mouse wheel |
 | Scan a monument (Pramana lens) | hold **right mouse** |
 | Map and fast travel | `M` |
 | Codex | `J` |
@@ -103,7 +107,8 @@ src/
   content/       ALL history and culture data — zones, codex, questions, timeline
   world/         Terrain, sky, sea, vegetation, collision
   world/architecture/   The procedural building kit and 33 monument builders
-  player/        First-person controller and the vimana/freefall/glide states
+  player/        Character controller, third-person camera rig, avatar animation
+  vehicles/      Rideable chariots
   quiz/          Question bank, spaced repetition, question generators, round engine
   ui/            HUD, overlays, quiz screen, dialogue box
 ```
@@ -127,10 +132,23 @@ described) and `prism` (a 2D outline extruded). Each monument merges into **one*
 geometry, so a whole temple is a single draw call: 82 monuments cost 82 draws. Builders also emit
 axis-aligned colliders, which the world transforms into place.
 
-**First-person controller.** A vertical cylinder with gravity resolved against AABBs, plus a
-step-up rule that makes stairs, plinths and temple platforms work without any stair-specific code.
-On top of that a small state machine: `vimana → freefall → glide → ground`, with `swim` when you
-walk into the sea.
+**Character controller and camera.** A vertical cylinder with gravity resolved against AABBs, plus
+a step-up rule that makes stairs, plinths and temple platforms work without any stair-specific
+code. On top of that a small state machine: `vimana → freefall → glide → ground`, with `swim` when
+you walk into the sea.
+
+The default view is over the shoulder. The camera orbits a pivot at the character's head with the
+crosshair still dead centre, so aiming, scanning and interaction all work exactly as they did in
+first person — only the eye moved. Two details carry the feel: the boom shortens *instantly* when
+something comes between camera and character and extends back slowly, so you never see through a
+wall but the camera does not snap out in doorways; and the pivot is damped while the orientation is
+not, so mouse-look stays exact while body movement is smoothed. `V` switches back to first person.
+
+The character is seven meshes with no skeleton: each limb's geometry hangs below its group origin,
+so the origin *is* the joint and a plain rotation swings it from the hip or shoulder. Walk, run,
+jump, skydive, glide, swim and ride are all pose functions over a single phase counter. The body
+faces where it is going rather than where the camera is looking, and drifts round to the camera
+when you stand still.
 
 **Quiz engine.** 175 authored questions plus generators that build unlimited new ones from the
 timeline and codex — chronology, century-dating, region identification, era ordering, evidence type.
@@ -140,6 +158,21 @@ reshuffled on every draw. Three rules are enforced in the UI rather than left to
 explanation shows for *every* answer; a wrong answer reveals the right one instead of letting you
 guess again; and nothing is ever deducted. Failure has to be cheap or children stop taking swings at
 hard questions.
+
+**Chariots.** Twenty-two of them, parked by the landing terraces, gates and bazaars of every
+region. `E` to mount. Handling is deliberately simple — speed along a heading, steering authority
+that scales with speed so it cannot pivot on the spot, and the body pitched and rolled to the
+ground normal sampled four ways. 0 to 21 m/s in about three seconds, roughly twice a sprint. The
+collision response judges a hit by how much forward progress survived it: graze a wall and you
+slide along it, drive into one and you stop. The camera swings back behind the chariot once it is
+moving, unless you are actively looking around.
+
+**The map.** Top right, north-up, with the range on the mouse wheel. The island is rendered once at
+load into an offscreen canvas — coastline, biome colour and hill shading — and every frame the game
+blits the piece under the player and stamps markers on top: monuments (filled once scanned),
+challenges (filled once done), people, chariots and landing terraces, with region names so the map
+teaches geography rather than only position. Anything in a region you have not reached yet is
+dimmed.
 
 ### Other things worth knowing
 
@@ -158,12 +191,13 @@ hard questions.
 
 ## Status — what is and is not built
 
-**Working now:** terrain and the whole island; all 82 monuments across 11 regions; the first-person
-controller including the vimana ride, freefall, glide and swimming; collision; scanning monuments to
-unlock codex entries; the codex; the map with fast travel; NPCs; the full quiz engine with generated
-questions, spaced repetition and the results breakdown; the dialogue challenges (all 11 of them,
-including the Gita, Ashoka after Kalinga, Vibhishana and Akbar's Ibadat Khana); pause, settings and
-the learning-record export.
+**Working now:** terrain and the whole island; all 82 monuments across 11 regions; the third-person
+character and camera (first person on `V`) including the vimana ride, freefall, glide and swimming;
+22 rideable chariots; the live corner map; collision; scanning monuments to unlock codex entries;
+the codex; the region list with fast travel; 69 people to talk to; the full quiz engine with
+generated questions, spaced repetition and the results breakdown; the dialogue challenges (all 11
+of them, including the Gita, Ashoka after Kalinga, Vibhishana and Akbar's Ibadat Khana); pause,
+settings and the learning-record export.
 
 **Not built yet:** the interactive runtimes for the other six challenge kinds — archery, assembly,
 pattern, script-matching, trade/weights and sequencing. All 42 challenges have their full data

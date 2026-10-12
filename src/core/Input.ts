@@ -27,6 +27,8 @@ export type Action =
   | 'slot1'
   | 'slot2'
   | 'slot3'
+  | 'cameraToggle'
+  | 'mount'
   | 'journalNext';
 
 const KEY_BINDINGS: Record<string, Action> = {
@@ -55,6 +57,8 @@ const KEY_BINDINGS: Record<string, Action> = {
   Digit1: 'slot1',
   Digit2: 'slot2',
   Digit3: 'slot3',
+  KeyV: 'cameraToggle',
+  KeyR: 'mount',
   Enter: 'journalNext',
 };
 
