@@ -1,0 +1,95 @@
+import type { CodexEntry } from '../types';
+
+export const meluhhaCodex: CodexEntry[] = [
+  {
+    id: 'ziggurat-ur',
+    zoneId: 'meluhha',
+    title: 'The Ziggurat',
+    when: 'c. 2100 BCE',
+    source: 'archaeology',
+    body: [
+      'The Great Ziggurat of Ur was built under Ur-Nammu, founder of the Third Dynasty of Ur, as the platform for a temple to the moon god Nanna. Its core is mud brick; its facing is baked brick set in bitumen, pierced by weeper holes so the core could dry. Three monumental staircases converge on the first terrace.',
+      'A ziggurat is not a pyramid: it is not a tomb and it is not hollow. It is a solid artificial mountain whose only purpose is to raise a small shrine above the flat delta. The lowest stage still stands because the Neo-Babylonians repaired it, and because the Iraqi restoration of the 1980s rebuilt the façade.',
+    ],
+    tags: ['Mesopotamia', 'architecture', 'Ur'],
+    seeAlso: ['stupa-grammar'],
+  },
+  {
+    id: 'cuneiform',
+    zoneId: 'meluhha',
+    title: 'Cuneiform: Writing Pressed Into Clay',
+    when: 'c. 3200 BCE onward',
+    source: 'archaeology',
+    body: [
+      'Cuneiform is a writing *technique*, not a language: the same wedge strokes were used to write Sumerian, Akkadian, Elamite, Hittite, Hurrian and Old Persian over three thousand years. A scribe cut a reed stylus to a triangular tip and pressed it into damp clay — pressing is far faster than drawing, and it does not tear the surface.',
+      'The system began as pictures and became mixed: some signs stand for whole words (logograms), others for syllables. A trained scribe had to manage several hundred signs with multiple possible readings. Clay is the reason we have so much of it — a discarded tablet survives being buried, and a burnt archive is baked rather than destroyed. Hundreds of thousands of tablets exist, and many remain untranslated simply because there are not enough Assyriologists.',
+    ],
+    tags: ['writing', 'clay tablets', 'Sumerian'],
+    seeAlso: ['indus-script', 'decipherment', 'writing-origins'],
+  },
+  {
+    id: 'decipherment',
+    zoneId: 'meluhha',
+    title: 'What It Takes to Crack a Script',
+    when: '1802–1857 CE',
+    source: 'text',
+    body: [
+      'Cuneiform fell to a chain of work across half a century. Georg Grotefend guessed at royal names in Old Persian in 1802. Henry Rawlinson copied the Behistun inscription from a cliff face in Iran — the same royal proclamation of Darius I in Old Persian, Elamite and Babylonian. Old Persian was simplest and gave the names; the names gave sound values; the sound values opened Akkadian. By 1857 four scholars working independently produced near-identical translations of the same text, which is what settled it.',
+      'Three ingredients recur in every successful decipherment: a bilingual or trilingual text, a known language or known proper names to anchor sound values, and a large enough body of text to test hypotheses. Egyptian hieroglyphs had the Rosetta Stone and Coptic. Linear B had Greek underneath it. The Indus script has none of the three — which is why it is still unread, and why it will probably stay unread unless a longer bilingual text is found.',
+    ],
+    tags: ['decipherment', 'method', 'Behistun'],
+    seeAlso: ['indus-script', 'brahmi-script'],
+  },
+  {
+    id: 'writing-origins',
+    zoneId: 'meluhha',
+    title: 'Writing Was Invented for Accounting',
+    when: 'c. 4000–2600 BCE',
+    source: 'archaeology',
+    body: [
+      'The sequence from Mesopotamia is unusually clear. First, small clay tokens shaped to stand for commodities, sometimes sealed inside clay envelopes as tamper-proof records. Then flat tablets with impressed pictures and separate number signs — recognisable accounts of barley, beer, sheep and labour. Then wedge strokes, then signs used phonetically so that names and grammar could be spelled.',
+      'Only after all of that do literary texts appear. The earliest substantial writing anywhere is administrative: who owes what to whom. Writing was not invented to preserve poetry; poetry moved in later and took over the house.',
+    ],
+    tags: ['writing', 'administration', 'Uruk'],
+    seeAlso: ['cuneiform'],
+  },
+  {
+    id: 'base-sixty',
+    zoneId: 'meluhha',
+    title: 'Why There Are Sixty Minutes in an Hour',
+    when: 'c. 2000 BCE onward',
+    source: 'text',
+    body: [
+      'Mesopotamian mathematics used a sexagesimal (base-60) place-value system. Sixty is convenient before decimal fractions are easy to write, because it divides exactly by 2, 3, 4, 5, 6, 10, 12, 15, 20 and 30 — so most everyday fractions come out whole. Sixty shekels made a mina, and sixty minas a talent.',
+      'That choice outlived the civilisation that made it. Sixty seconds in a minute, sixty minutes in an hour, 360 degrees in a circle and 60 minutes of arc are all Babylonian inheritances, transmitted through Greek astronomy. Babylonian astronomers also left systematic observational records over centuries — the raw data that later Greek and Indian astronomy built on.',
+    ],
+    tags: ['mathematics', 'measurement', 'astronomy'],
+    seeAlso: ['indus-weights', 'zero-and-place-value'],
+  },
+  {
+    id: 'mesopotamian-law',
+    zoneId: 'meluhha',
+    title: 'Law Carved Where People Can See It',
+    when: 'c. 2100–1750 BCE',
+    source: 'text',
+    body: [
+      'Mesopotamia produced the earliest substantial written law collections we have: the laws of Ur-Nammu (c. 2100 BCE), of Lipit-Ishtar, of Eshnunna, and most famously the stele of Hammurabi of Babylon (c. 1754 BCE), now in the Louvre. Hammurabi’s text runs to around 280 provisions on property, family, wages, loans, medical fees and injury.',
+      'Two things are worth noticing. The penalties are explicitly graded by the victim’s social rank, so the stele is also a record of inequality. And the point of carving law on a public monument is that the rule is meant to be knowable in advance rather than invented at the moment of judgement — an idea that matters as much as any particular clause.',
+    ],
+    tags: ['law', 'Hammurabi', 'society'],
+    seeAlso: ['arthashastra', 'ashoka-edicts'],
+  },
+  {
+    id: 'mesopotamia-rivers',
+    zoneId: 'meluhha',
+    title: 'Two Rivers, and the Trouble With Them',
+    when: 'c. 5000 BCE onward',
+    source: 'archaeology',
+    body: [
+      'Sumer sat on the alluvium between the Tigris and Euphrates, in a region with too little rain to farm without irrigation. Canals made the surplus that made the cities; the canals also required collective labour, maintenance schedules and dispute resolution, which is one plausible route from village to state.',
+      'The cost arrived slowly. Irrigation in a hot flat basin with a high water table accumulates salt, and texts and crop records show a shift from wheat to the more salt-tolerant barley over centuries, with falling yields in the south. The Indus faced the opposite problem — a monsoon that could fail — and the two civilisations’ different water engineering follows directly from that difference.',
+    ],
+    tags: ['irrigation', 'environment', 'agriculture'],
+    seeAlso: ['dholavira-water', 'indus-decline'],
+  },
+];

@@ -1,0 +1,96 @@
+import type { CodexEntry } from '../types';
+
+export const setuLankaCodex: CodexEntry[] = [
+  {
+    id: 'ram-setu',
+    zoneId: 'setu-lanka',
+    title: 'The Setu in the Epic',
+    when: 'Epic tradition',
+    source: 'epic',
+    body: [
+      'In the Yuddha Kanda the alliance has to cross from the Indian mainland to Lanka. Valmiki names an engineer, Nala, who directs the work; the army gathers stone and timber and builds a causeway described as a hundred yojanas long and ten wide — epic numbers, meaning "very large".',
+      'What is interesting is how procedural the passage is. The sea is first petitioned, then surveyed; the materials are gathered and the work is organised by teams; the crossing takes days. The epic treats a feat of logistics as worth narrating at length, immediately before the fighting it is famous for.',
+    ],
+    tags: ['epic', 'engineering', 'Yuddha Kanda'],
+    seeAlso: ['adams-bridge-geology', 'rameswaram'],
+  },
+  {
+    id: 'adams-bridge-geology',
+    zoneId: 'setu-lanka',
+    title: 'Adam’s Bridge: What the Geology Shows',
+    when: 'Formed over tens to hundreds of thousands of years',
+    source: 'archaeology',
+    body: [
+      'Between Rameswaram (Pamban Island) in Tamil Nadu and Mannar Island in Sri Lanka runs a chain of shoals, sandbanks and coral reef roughly 48 km long, in water mostly 1–10 m deep. It is shown on charts as Adam’s Bridge and is locally called Rama Setu. Much of it is walkable or waded at low tide; it is not navigable by anything but the smallest craft.',
+      'Cores and surveys describe it as a natural formation: a line of old beach ridges, sand spits and coral built up along a shallow ridge during periods of lower sea level, repeatedly reworked by currents and storms. The India–Sri Lanka land connection itself has opened and closed with ice-age sea levels. Dates for the various components run from a few thousand to many tens of thousands of years, and the detail is still being refined — but no survey has produced evidence of construction.',
+      'Two statements can both be true: the shoal is a natural feature, and the epic account of a crossing is culturally important. Keeping those claims in separate boxes is the whole skill.',
+    ],
+    tags: ['geology', 'coastal', 'evidence'],
+    seeAlso: ['ram-setu'],
+  },
+  {
+    id: 'rameswaram',
+    zoneId: 'setu-lanka',
+    title: 'Rameswaram and the Shore Shrines',
+    when: 'c. 12th century CE onward',
+    source: 'archaeology',
+    body: [
+      'The Ramanathaswamy temple at Rameswaram is a major pilgrimage site and one of the twelve Jyotirlinga shrines. The existing structure is largely the work of successive patrons from the twelfth century onward — Pandyas, Setupatis of Ramnad, and later donors — and it contains the longest temple corridor in India, a colonnade of over a thousand carved pillars.',
+      'A pattern worth noticing across Indian sacred architecture: the religious association is old, the standing stone is comparatively recent, and the building grew by accretion as patrons added halls, gateways and corridors over centuries. Dating "the temple" as a single object is usually a mistake.',
+    ],
+    tags: ['temple', 'pilgrimage', 'Tamil Nadu'],
+    seeAlso: ['brihadeeswarar', 'nagara-style'],
+  },
+  {
+    id: 'lanka-city',
+    zoneId: 'setu-lanka',
+    title: 'Lanka in the Poem',
+    when: 'Epic tradition',
+    source: 'epic',
+    body: [
+      'Valmiki describes Lanka as a wealthy, well-governed, strongly fortified capital: ramparts and moats, ordered streets, gardens, music, and a court of learned counsellors. Ravana himself is given a formidable education — a scholar of the Vedas, a musician, an astrologer — which is precisely what makes him a tragedy rather than a monster.',
+      'That characterisation is deliberate. An epic antagonist who is stupid teaches nothing. The poem’s argument is that learning and power do not immunise anyone against a single ungoverned appetite, and it builds Ravana up carefully so that the point lands.',
+    ],
+    tags: ['epic', 'Ravana', 'characterisation'],
+    seeAlso: ['vibhishana', 'dharma-conflict'],
+  },
+  {
+    id: 'vibhishana',
+    zoneId: 'setu-lanka',
+    title: 'Vibhishana’s Defection',
+    when: 'Epic tradition',
+    source: 'epic',
+    body: [
+      'Ravana’s brother Vibhishana argues in open court that Sita must be returned, is denounced as a traitor, and leaves to join Rama. His other brother Kumbhakarna also tells Ravana plainly that he is in the wrong — and then fights for him anyway, and dies. The poem places these two responses side by side on purpose.',
+      'At the end of the war Rama installs Vibhishana as king of Lanka rather than annexing it. The sequence makes an argument about legitimacy: the war’s stated aim was to right a specific wrong, and the settlement is designed to show that aim was honest. In the Sri Lankan and Southeast Asian retellings Vibhishana is often a considerably more prominent and honoured figure than in north Indian ones.',
+    ],
+    tags: ['ethics', 'loyalty', 'dharma'],
+    seeAlso: ['dharma-conflict', 'lanka-city'],
+  },
+  {
+    id: 'dharma-conflict',
+    zoneId: 'setu-lanka',
+    title: 'When Duties Collide',
+    when: 'Epic tradition',
+    source: 'epic',
+    body: [
+      'Both Sanskrit epics are built around collisions between obligations that are each individually right: loyalty to family against justice to a stranger, obedience to a parent against duty to subjects, a vow already sworn against an outcome now visibly wrong. The texts call the resulting difficulty dharmasankata — a crisis of dharma.',
+      'Neither epic resolves these by rule. They dramatise the cost of each path and then let the characters choose, and they keep score afterwards. That is why they have survived as teaching texts: a rulebook goes out of date, but a well-constructed dilemma keeps working. The Mahabharata is blunter still, and ends by denying the victors any clean victory at all.',
+    ],
+    tags: ['ethics', 'dharma', 'philosophy'],
+    seeAlso: ['bhagavad-gita', 'karma-yoga', 'vibhishana'],
+  },
+  {
+    id: 'ancient-shipping',
+    zoneId: 'setu-lanka',
+    title: 'Ships of the Indian Ocean',
+    when: 'c. 2500 BCE – 1500 CE',
+    source: 'archaeology',
+    body: [
+      'For most of recorded history the characteristic Indian Ocean hull was built of planks sewn together with coir rope rather than nailed, caulked with resin and fibre, and rigged with a settee or lateen sail. Sewn hulls flex in a swell and are repairable on a beach with no forge — a serious advantage on long monsoon routes. Teak, from the Western Ghats, was prized and exported for shipbuilding as far as the Gulf.',
+      'Evidence comes from a mix of sources: Harappan seal depictions, the first-century Greek merchant handbook Periplus of the Erythraean Sea, Ajanta and Borobudur reliefs, Chola inscriptions, Arab geographers, and excavated wrecks such as the ninth-century Belitung wreck in Indonesian waters. The Periplus names Indian ports and the goods traded from them, which lets us cross-check the archaeology.',
+    ],
+    tags: ['maritime', 'technology', 'trade'],
+    seeAlso: ['monsoon-trade', 'chola-navy', 'meluhha-trade'],
+  },
+];

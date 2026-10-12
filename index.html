@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bharat Gatha — Chronicles of a Civilisation</title>
+    <meta
+      name="description"
+      content="An open-world first-person learning game that teaches Indian history, heritage and culture through play. Smart India Hackathon PS 26208."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Mukta:wght@300;400;600;800&family=Tiro+Devanagari+Hindi&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='78' font-size='78'%3E%F0%9F%95%89%3C/text%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <!-- ============ 3D viewport ============ -->
+    <div id="viewport"></div>
+
+    <!-- ============ In-world HUD ============ -->
+    <div id="hud" class="hud" hidden>
+      <div id="crosshair" class="crosshair" data-mode="idle">
+        <span class="ch-dot"></span>
+        <span class="ch-ring"></span>
+      </div>
+
+      <div id="compass" class="compass">
+        <div id="compass-strip" class="compass-strip"></div>
+        <div class="compass-needle"></div>
+      </div>
+
+      <div id="zone-banner" class="zone-banner">
+        <div class="zb-era"></div>
+        <div class="zb-name"></div>
+        <div class="zb-sub"></div>
+      </div>
+
+      <aside id="objective-panel" class="objective-panel">
+        <header>
+          <span class="op-chapter">Chapter</span>
+          <span class="op-progress">0 / 0</span>
+        </header>
+        <ol class="op-list"></ol>
+      </aside>
+
+      <div id="interact-prompt" class="interact-prompt" hidden>
+        <kbd>E</kbd><span class="ip-label"></span>
+      </div>
+
+      <div id="scan-readout" class="scan-readout" hidden>
+        <div class="sr-bar"><i></i></div>
+        <div class="sr-label">Scanning…</div>
+      </div>
+
+      <div id="toasts" class="toasts"></div>
+
+      <footer id="statusbar" class="statusbar">
+        <div class="sb-vidya" title="Vidya Points — earned by learning, not by shooting">
+          <span class="sb-icon">✦</span><span class="sb-value">0</span>
+          <small>Vidya</small>
+        </div>
+        <div id="toolbelt" class="toolbelt"></div>
+        <div class="sb-keys">
+          <kbd>M</kbd> Map <kbd>J</kbd> Codex <kbd>Esc</kbd> Menu
+        </div>
+      </footer>
+
+      <div id="flight-hint" class="flight-hint" hidden></div>
+    </div>
+
+    <!-- ============ Full-screen overlays (populated by UiManager) ============ -->
+    <div id="overlay-root" class="overlay-root" hidden></div>
+
+    <!-- ============ Title / loading ============ -->
+    <div id="boot" class="boot">
+      <div class="boot-art" aria-hidden="true">
+        <div class="boot-sun"></div>
+        <div class="boot-chakra"></div>
+      </div>
+      <div class="boot-inner">
+        <p class="boot-kicker">Smart India Hackathon · PS 26208</p>
+        <h1 class="boot-title">
+          <span class="bt-hi">भारत गाथा</span>
+          <span class="bt-en">Bharat Gatha</span>
+        </h1>
+        <p class="boot-tagline">
+          Chronicles of a Civilisation — an open world you learn by walking through.
+        </p>
+
+        <div id="boot-progress" class="boot-progress">
+          <div class="bp-track"><i></i></div>
+          <div class="bp-label">Preparing the subcontinent…</div>
+        </div>
+
+        <div id="boot-actions" class="boot-actions" hidden>
+          <button id="btn-play" class="btn btn-primary" type="button">
+            Board the Pushpaka Vimana
+          </button>
+          <button id="btn-continue" class="btn" type="button" hidden>Continue journey</button>
+          <div class="boot-meta">
+            <button id="btn-howto" class="link" type="button">How to play</button>
+            <span class="dot">·</span>
+            <button id="btn-lang" class="link" type="button" data-lang="en">हिन्दी</button>
+            <span class="dot">·</span>
+            <button id="btn-credits" class="link" type="button">About this project</button>
+          </div>
+        </div>
+      </div>
+      <p class="boot-foot">
+        Headphones recommended. Best on a keyboard &amp; mouse. Press <kbd>Esc</kbd> any time to pause.
+      </p>
+    </div>
+
+    <noscript>
+      <p style="color: #fff; font: 16px sans-serif; padding: 2rem">
+        Bharat Gatha needs JavaScript and WebGL 2 to run.
+      </p>
+    </noscript>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "bharat-gatha",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Bharat Gatha - an open-world first-person learning game about Indian civilisation, history and culture. Smart India Hackathon PS 26208.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "three": "0.169.0"
+  },
+  "devDependencies": {
+    "@types/three": "0.169.0",
+    "typescript": "5.6.3",
+    "vite": "5.4.10"
+  }
+}

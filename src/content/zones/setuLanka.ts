@@ -1,0 +1,239 @@
+import type { Zone } from '../types';
+
+/**
+ * Chapter 4 — the Setu crossing and Lanka.
+ *
+ * Two lessons sit side by side here. One is engineering: how you actually build
+ * a causeway across a shoal, and what the geology of Adam's Bridge really shows.
+ * The other is ethics: Vibhishana's choice, which is the sharpest moral question
+ * in the epic — when is loyalty to your own side the wrong answer?
+ */
+export const setuLanka: Zone = {
+  id: 'setu-lanka',
+  name: 'The Setu & Lanka',
+  nameLocal: 'सेतु · लङ्का',
+  era: 'Epic tradition · shoal geology c. 500,000 yrs',
+  eraStart: -400,
+  eraEnd: 400,
+  chapter: 4,
+  tagline: 'A causeway, a siege, and the hardest choice in the epic.',
+  blurb:
+    'Where the land runs out and the shoals begin. In the epic an army builds a bridge to Lanka; in geology a chain of sandbanks and coral shoals really does link Rameswaram to Mannar. Both facts are worth knowing, and they are different kinds of fact.',
+  center: [760, 940],
+  radius: 300,
+  plateau: 16,
+  island: true,
+  biome: 'tropicalIsland',
+  raga: 'malkauns',
+  tonic: 47,
+  sealRequires: 2,
+  palette: {
+    ground: 0xcbb47c,
+    rock: 0x8e8475,
+    foliage: 0x2f6b43,
+    stone: 0x7e6a5c,
+    horizon: 0xff9f6e,
+    zenith: 0x3b5f9e,
+    fog: 0xe0b495,
+    sun: 0xffc07a,
+    sunElevation: 13,
+    sunAzimuth: 262,
+  },
+
+  landmarks: [
+    {
+      id: 'setu-bridge',
+      name: 'The Setu Causeway',
+      kind: 'ramSetu',
+      offset: [-180, -150],
+      rotation: 38,
+      codexId: 'ram-setu',
+      scanSeconds: 3,
+      signposted: true,
+      opts: { span: 300, segments: 26 },
+    },
+    {
+      id: 'setu-lankafort',
+      name: 'The Citadel of Lanka',
+      kind: 'lankaFort',
+      offset: [40, -10],
+      codexId: 'lanka-city',
+      scanSeconds: 3.5,
+      signposted: true,
+      opts: { towers: 6, wallRadius: 72, height: 26 },
+    },
+    {
+      id: 'setu-shrine',
+      name: 'The Shore Shrine',
+      kind: 'dravidaTemple',
+      offset: [-150, -60],
+      rotation: 15,
+      codexId: 'rameswaram',
+      scanSeconds: 3,
+      signposted: true,
+      opts: { tiers: 5, gopuram: 1 },
+    },
+    {
+      id: 'setu-harbour',
+      name: 'Ravana’s Harbour',
+      kind: 'harbour',
+      offset: [120, 90],
+      rotation: -35,
+      codexId: 'ancient-shipping',
+      scanSeconds: 2.5,
+    },
+    {
+      id: 'setu-boulders',
+      name: 'The Shoal Boulders',
+      kind: 'boulderField',
+      offset: [-90, 60],
+      opts: { count: 34, spread: 90, scale: 1.3 },
+      codexId: 'adams-bridge-geology',
+      scanSeconds: 3,
+      signposted: true,
+    },
+    { id: 'setu-pad', name: 'Landing Terrace', kind: 'vimanaPad', offset: [110, -110] },
+  ],
+
+  challenges: [
+    {
+      id: 'setu-build',
+      kind: 'assembly',
+      name: 'Build the Causeway',
+      brief: 'Lay the causeway in the order a real engineer would: survey first, surface last.',
+      teaches:
+        'Causeway engineering: sound the depth, set a rubble core on the shallowest line, bind it, then surface it. Load spreading matters more than size of stone.',
+      offset: [-160, -130],
+      vidya: 160,
+      quizAfter: 2,
+      prompt: 'Direct the causeway works',
+      unlocks: ['ram-setu', 'adams-bridge-geology'],
+      config: {
+        ordered: true,
+        hint: 'You cannot surface a road before there is anything under it. Sound the channel first.',
+        pieces: [
+          { id: 'sounding', label: 'Sounding line & marker floats', size: [1.2, 2.4, 1.2], color: 0xc9b07a },
+          { id: 'rubble', label: 'Rubble core stone', size: [2.6, 1.6, 2.6], color: 0x7d7468 },
+          { id: 'timber', label: 'Timber crib binding', size: [4, 0.8, 1.6], color: 0x6c4e33 },
+          { id: 'fill', label: 'Shell-and-sand fill', size: [3.4, 0.9, 3.4], color: 0xd8c79a },
+          { id: 'causeway', label: 'Dressed causeway slab', size: [4.4, 0.5, 3.6], color: 0x9a8f7e },
+        ],
+        sockets: [
+          { id: 'c1', label: '1 · Sound the shallows', pos: [-10, 0.6, 0], accepts: 'sounding' },
+          { id: 'c2', label: '2 · Drop the core', pos: [-5, 0.5, 0], accepts: 'rubble' },
+          { id: 'c3', label: '3 · Bind the core', pos: [0, 0.4, 0], accepts: 'timber' },
+          { id: 'c4', label: '4 · Fill the voids', pos: [5, 0.4, 0], accepts: 'fill' },
+          { id: 'c5', label: '5 · Lay the surface', pos: [10, 0.3, 0], accepts: 'causeway' },
+        ],
+      },
+    },
+    {
+      id: 'setu-vibhishana',
+      kind: 'dialogue',
+      name: 'Vibhishana’s Choice',
+      brief: 'Advise Ravana’s brother. There is no painless answer.',
+      teaches:
+        'Dharma in the epics is not obedience. When loyalty to kin collides with justice, the epic sides with justice — and still counts the cost.',
+      offset: [20, 24],
+      vidya: 170,
+      quizAfter: 2,
+      prompt: 'Counsel Vibhishana',
+      unlocks: ['vibhishana', 'dharma-conflict'],
+      config: {
+        speaker: { name: 'Vibhishana', role: 'Brother to the king of Lanka', icon: '🪷' },
+        nodes: [
+          {
+            id: 'start',
+            text:
+              'My brother has taken another man’s wife by force and will not return her. I have said so in open court. He called me a traitor and told me to leave. Stranger, I have one night to decide. Do I stand with my blood, or against it?',
+            choices: [
+              { label: 'Stand with your brother. Family comes first.', goto: 'family' },
+              { label: 'Tell him the truth once more, in private.', goto: 'truth' },
+              { label: 'Leave. A wrong does not become right because your brother did it.', goto: 'leave', wise: true, note: 'This is the choice the epic itself endorses — and it costs him his home.' },
+            ],
+          },
+          {
+            id: 'family',
+            text:
+              'Then I would be a man who knew better and stayed silent. The epic has a word for the advisor who flatters a king into ruin, and it is not a kind word. Kumbhakarna, my other brother, chooses exactly this: he tells Ravana plainly that he is wrong, and then fights for him anyway, and dies. He is not a villain. He is a warning.',
+            choices: [
+              { label: 'So loyalty without honesty is a trap.', reply: 'And honesty without courage is just noise.', goto: 'leave', wise: true },
+              { label: 'Perhaps I should speak to him again.', goto: 'truth' },
+            ],
+          },
+          {
+            id: 'truth',
+            text:
+              'I have. Three times. In court, in his chamber, and on the terrace at dawn. He does not lack information. He lacks the willingness to be wrong in front of people. That is a different illness, and no argument cures it. At some point counsel ends and choice begins.',
+            choices: [
+              { label: 'Then the choice is yours alone.', goto: 'leave' },
+              { label: 'What does your conscience say?', goto: 'leave' },
+            ],
+          },
+          {
+            id: 'leave',
+            text:
+              'Then I go, and I will be called a traitor in my own city for as long as the story is told. And in some tellings I am. But consider what the epic does with me afterwards: Rama makes me king of Lanka. Not as a reward for switching sides — as a statement about what a kingdom owes its people. Dharma, in this poem, is not whose side you are on. It is what you are willing to lose to do right.',
+            end: true,
+            vidya: 90,
+            unlocks: ['dharma-conflict'],
+          },
+        ],
+      },
+    },
+    {
+      id: 'setu-sequence',
+      kind: 'sequence',
+      name: 'The Lanka Campaign',
+      brief: 'Put the events of the crossing and the siege in order.',
+      teaches: 'Narrative sequencing: reconnaissance, alliance, crossing, siege, resolution.',
+      offset: [-40, 80],
+      vidya: 120,
+      quizAfter: 1,
+      prompt: 'Read the campaign record',
+      config: {
+        note:
+          'Notice the shape of the story: intelligence first, then diplomacy, then engineering, and only then battle. The epic treats the scout’s journey (Sundara Kanda) as important enough to be an entire book, and it is the book most often recited on its own.',
+        items: [
+          { id: 'alliance', label: 'Alliance at Kishkindha', when: 'Book 4', detail: 'Rama allies with Sugriva; Hanuman joins the search.' },
+          { id: 'leap', label: 'Hanuman crosses to Lanka', when: 'Book 5', detail: 'Reconnaissance: he finds Sita, confirms she lives, and returns with intelligence.' },
+          { id: 'setu', label: 'The causeway is built', when: 'Book 6', detail: 'Nala is named as the engineer of the crossing in Valmiki’s account.' },
+          { id: 'embassy', label: 'Angada’s final embassy', when: 'Book 6', detail: 'One last demand to return Sita before the fighting starts.' },
+          { id: 'siege', label: 'The siege and the duels', when: 'Book 6', detail: 'Kumbhakarna and Indrajit fall before Ravana himself takes the field.' },
+          { id: 'crown', label: 'Vibhishana crowned in Lanka', when: 'Book 6', detail: 'The war ends not in annexation but in installing a just ruler.' },
+        ],
+      },
+    },
+  ],
+
+  npcs: [
+    {
+      id: 'setu-engineer',
+      name: 'Nala',
+      role: 'Engineer of the crossing',
+      icon: '📏',
+      offset: [-150, -112],
+      color: 0x9f8d6a,
+      lines: [
+        'Do not ask me for the biggest stone. Ask me for the shallowest line.',
+        'Stone sinks. Stone on stone on a shoal does not. The sea does half the work if you let it.',
+        'They will sing about the army. They should sing about the sounding line.',
+      ],
+      unlocks: 'ram-setu',
+    },
+    {
+      id: 'setu-geologist',
+      name: 'Dr. Meena Fernando',
+      role: 'Marine geologist',
+      icon: '🔬',
+      offset: [-80, 44],
+      color: 0x6fa0a8,
+      lines: [
+        'The shoal chain is real and you can walk much of it at low tide. Coral, sand, and old beach ridges.',
+        'Sea-level cores put these banks in the hundreds of thousands of years. That is older than any story.',
+        'Two true things: the shoal is natural, and the epic is meaningful. Neither needs the other to be false.',
+      ],
+      unlocks: 'adams-bridge-geology',
+    },
+  ],
+};
