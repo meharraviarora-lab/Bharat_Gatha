@@ -48,6 +48,15 @@
   box-sizing: border-box;
 }
 
+/*
+ * `hidden` is only a weak default (display: none from the UA sheet), so any
+ * rule that sets `display` beats it. Everything in this UI is toggled with the
+ * attribute, so enforce it. The title screen is exempt because it fades out.
+ */
+[hidden]:not(.boot) {
+  display: none !important;
+}
+
 html,
 body {
   margin: 0;

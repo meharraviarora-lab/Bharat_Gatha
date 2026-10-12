@@ -137,7 +137,17 @@ export class Input {
 
   requestLock(): void {
     if (this.locked) return;
-    void this.element.requestPointerLock?.();
+    // Pointer lock is refused in some embedded contexts (preview panes, cross
+    // document iframes). That is not an error worth surfacing — the game is
+    // still playable, mouse-look just needs a click on the page first.
+    try {
+      const result = this.element.requestPointerLock?.() as unknown;
+      if (result && typeof (result as Promise<void>).catch === 'function') {
+        (result as Promise<void>).catch(() => undefined);
+      }
+    } catch {
+      /* ignore */
+    }
   }
 
   releaseLock(): void {

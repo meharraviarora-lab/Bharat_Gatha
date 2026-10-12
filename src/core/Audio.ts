@@ -378,6 +378,12 @@ export class AudioEngine {
     osc.stop(now + 2.2);
   }
 
+  /** Entering water. */
+  splash(): void {
+    this.noise(0.45, 0.22, 'lowpass', 1800, 0.8, 260);
+    this.noise(0.22, 0.12, 'highpass', 2400, 0.7);
+  }
+
   wind(intensity: number): void {
     // Called on every skydive frame tick at a low rate; cheap burst is fine.
     this.noise(0.22, 0.03 + intensity * 0.06, 'bandpass', 500 + intensity * 700, 0.6);

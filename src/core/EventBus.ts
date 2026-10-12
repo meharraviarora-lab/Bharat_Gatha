@@ -5,7 +5,7 @@
 
 export type Listener<T> = (payload: T) => void;
 
-export class EventBus<Events extends Record<string, unknown>> {
+export class EventBus<Events extends object> {
   private readonly map = new Map<keyof Events, Set<Listener<never>>>();
 
   on<K extends keyof Events>(event: K, fn: Listener<Events[K]>): () => void {

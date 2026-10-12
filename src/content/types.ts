@@ -294,6 +294,12 @@ export interface DialogueNode {
     /** A short note explaining why this choice matters. */
     note?: string;
   }>;
+  /**
+   * Where to go when the node offers no choices. `goto` and `next` are
+   * synonyms — `goto` wins if both are given — so a node reads the same way
+   * whether it branches or simply continues.
+   */
+  goto?: string;
   next?: string;
 }
 
