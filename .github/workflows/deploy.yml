@@ -1,0 +1,60 @@
+name: Deploy to GitHub Pages
+
+# Builds the game and publishes it to GitHub Pages on every push to main, so
+# the playable link is always the current code. Vite is configured with a
+# relative base (`base: './'`), which is what makes a project page served from
+# /<repo>/ resolve its assets correctly without hard-coding the repo name.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a newer push cancel an in-flight deploy, but never run two at once.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Fail the deploy rather than publish a broken build.
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload the built site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
