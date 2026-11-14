@@ -21,6 +21,13 @@ import type { VoiceName } from './voices';
  *  - **Call and response.** The lead states a phrase; the echo voice answers it
  *    an octave up, quieter, on alternate bars.
  *  - **Resolution.** The last bar of every metered block lands on Sa.
+ *  - **It listens.** An `intensity` between 0 and 1 says how much the moment
+ *    is asking of the music. It never touches the raga — a raga that turns
+ *    into another raga under pressure is not a raga. It changes only the
+ *    *performance*: the tabla joins sooner, the laya lifts, the strokes land
+ *    harder, the line climbs an octave. That is what an ensemble does when the
+ *    room turns, and it is the difference between a soundtrack that is playing
+ *    near the game and one that is playing with it.
  */
 
 export type Instrument = VoiceName | 'tanpura' | 'bell' | 'manjira';
@@ -73,17 +80,34 @@ export class Composer {
   private index = 0;
   private phraseCursor = 0;
 
+  /** 0 at rest, 1 when the music should push. See the note on performance above. */
+  intensity = 0;
+
   constructor(readonly theme: Theme, seed = 'score') {
     this.raga = RAGA_BOOK[theme.raga] ?? (RAGA_BOOK.bhairav as Raga);
     this.taal = TAALS[theme.taal] ?? (TAALS.keherwa as Taal);
     this.rng = new Rng(`${theme.id}:${seed}`);
   }
 
-  /** Where the next bar falls in the alap/gat cycle. */
+  /**
+   * Where the next bar falls in the alap/gat cycle.
+   *
+   * Pressure shortens the free-time opening: the drum arrives earlier, and at
+   * full intensity the cycle is all gat, so there is always a pulse. A theme
+   * with no gat at all (the title screen) stays in alap whatever happens —
+   * nothing should start drumming over the menu.
+   */
   private mode(): 'alap' | 'gat' {
     const { alapBars, gatBars } = this.theme;
     if (gatBars === 0) return 'alap';
-    return this.index % (alapBars + gatBars) < alapBars ? 'alap' : 'gat';
+    const alap = Math.round(alapBars * (1 - this.intensity));
+    if (alap <= 0) return 'gat';
+    return this.index % (alap + gatBars) < alap ? 'alap' : 'gat';
+  }
+
+  /** The pulse for this bar. Laya lifts under pressure, but never past a sprint. */
+  private bpm(): number {
+    return this.theme.bpm * (1 + 0.2 * this.intensity);
   }
 
   nextBar(): Bar {
@@ -219,7 +243,7 @@ export class Composer {
 
     // A pulse underneath, when the theme wants a heartbeat during alap.
     if (th.pulseInAlap && th.kit !== 'none') {
-      for (let pt = 0.5; pt < duration; pt += 60 / th.bpm * 2) events.push({ kind: 'drum', t: pt, bol: 'dha', vel: 0.4 });
+      for (let pt = 0.5; pt < duration; pt += (60 / this.bpm()) * 2) events.push({ kind: 'drum', t: pt, bol: 'dha', vel: 0.4 });
     }
     return { mode: 'alap', duration, events, index: this.index };
   }
@@ -245,7 +269,7 @@ export class Composer {
   private gat(): Bar {
     const th = this.theme;
     const matras = this.taal.bols.length;
-    const beat = 60 / th.bpm;
+    const beat = 60 / this.bpm();
     const duration = matras * beat;
     const events: ScoreEvent[] = [];
     const blockBar = (this.index - th.alapBars) % (th.alapBars + th.gatBars);
@@ -258,10 +282,12 @@ export class Composer {
     if (th.kit !== 'none') {
       this.taal.bols.forEach((bol, m) => {
         const strong = m === 0 ? 1 : this.taal.vibhag.includes(m) ? 0.82 : 0.62;
-        events.push({ kind: 'drum', t: m * beat + this.rng.range(-0.006, 0.006), bol, vel: strong * this.rng.range(0.9, 1.05) });
+        // Firmer strokes when the moment is pressing.
+        const weight = 0.88 + 0.24 * this.intensity;
+        events.push({ kind: 'drum', t: m * beat + this.rng.range(-0.006, 0.006), bol, vel: strong * weight * this.rng.range(0.9, 1.05) });
       });
       // An occasional fill into the next sam.
-      if (this.rng.bool(0.3) && matras >= 6) {
+      if (this.rng.bool(0.3 + 0.4 * this.intensity) && matras >= 6) {
         const fillBols: Bol[] = ['ti', 'ka', 'ge', 'na'];
         events.push({ kind: 'drum', t: (matras - 0.5) * beat, bol: fillBols[this.rng.int(0, 3)] as Bol, vel: 0.5 });
       }

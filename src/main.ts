@@ -563,6 +563,7 @@ class Game {
     audio.listen(this.camera.position.x, this.camera.position.y, this.camera.position.z, _look.x, _look.y, _look.z);
     this.updateGuide(dt, blocked);
     this.updatePin(blocked);
+    this.updateScoreIntensity();
     {
       const flying = this.player.state !== 'ground' && this.player.state !== 'climb' && this.player.state !== 'swim';
       this.combat.update(dt, this.elapsed, this.player.position, blocked || this.dialogue.isOpen || flying);
@@ -697,6 +698,18 @@ class Game {
     const chariot = this.ridingChariot;
     if (!chariot) return;
 
+    // Something moved the player off this vehicle without going through
+    // dismountChariot: being overwhelmed by the haze, or fast travel from the
+    // map. Both call `teleportTo`, which clears `player.vehicle` but knows
+    // nothing about `ridingChariot` — so without this the next line would seat
+    // the player straight back on a horse half an island away, undoing the
+    // rescue. Checking it here catches every such path, including later ones.
+    if (!this.player.vehicle) {
+      chariot.dismount();
+      this.ridingChariot = null;
+      return;
+    }
+
     const throttle = (this.input.pressed('forward') ? 1 : 0) + (this.input.pressed('back') ? -1 : 0);
     const steer = (this.input.pressed('right') ? 1 : 0) + (this.input.pressed('left') ? -1 : 0);
     chariot.update(dt, { throttle, steer, handbrake: this.input.pressed('jump') });
@@ -730,16 +743,52 @@ class Game {
     );
   }
 
+  /**
+   * Let go of the vehicle without stepping down onto the ground beside it —
+   * for when the player is about to be somewhere else entirely.
+   */
+  private leaveVehicle(): void {
+    if (!this.ridingChariot) return;
+    this.ridingChariot.dismount();
+    this.ridingChariot = null;
+    this.player.vehicle = null;
+  }
+
   private dismountChariot(): void {
     const chariot = this.ridingChariot;
     if (!chariot) return;
     chariot.dismount();
     this.ridingChariot = null;
     this.player.vehicle = null;
-    const spot = chariot.dismountPoint();
-    this.player.placeAt(new THREE.Vector3(spot.x, spot.y + 0.2, spot.z));
+    this.player.placeAt(this.stepDownSpot(chariot));
     this.player.yaw = chariot.yaw;
     this.player.rig.reset();
+  }
+
+  /**
+   * Somewhere clear to step down onto. The vehicle's own `dismountPoint` is
+   * always a fixed distance off its right-hand side, which is fine in open
+   * country and puts you inside a wall when you pull up beside one. Walk round
+   * the vehicle instead and take the first spot that is out of the water, off
+   * the rocks, and not inside anything.
+   */
+  private stepDownSpot(chariot: Chariot): THREE.Vector3 {
+    const terrain = this.world.terrain;
+    for (const turn of [0, 1, -1, 2, -2, 3, -3, 4]) {
+      const angle = chariot.yaw + Math.PI / 2 + (turn * Math.PI) / 4;
+      for (const dist of [2.6, 3.4, 4.2]) {
+        const x = chariot.position.x + Math.cos(angle) * dist;
+        const z = chariot.position.z - Math.sin(angle) * dist;
+        const y = terrain.heightAt(x, z);
+        if (y <= SEA_LEVEL + 0.4) continue;
+        // A spot you would immediately be pushed out of is not a spot.
+        if (this.world.collision.resolve(x, y, z, 0.42, 1.8, 0.68).blocked) continue;
+        return new THREE.Vector3(x, y + 0.2, z);
+      }
+    }
+    // Boxed in on every side. Step off where the vehicle itself is standing:
+    // it drove in, so it fits, and a player is narrower than a cart.
+    return new THREE.Vector3(chariot.position.x, chariot.position.y + 0.2, chariot.position.z);
   }
 
   private updateInteraction(dt: number): void {
@@ -805,7 +854,11 @@ class Game {
     // because that is almost always what you meant.
     const chariot = this.world.nearestChariot(this.player.focusPosition, 5.5);
     const near = this.world.nearestInteractable(this.player.focusPosition);
-    if (chariot && !scanning) {
+    // You have to have your feet on the ground to climb aboard. Without this
+    // you can mount from mid-glide, which teleports you out of the canopy and
+    // onto the deck.
+    const canMount = chariot && !scanning && this.player.state === 'ground';
+    if (canMount) {
       this.hud.setInteractPrompt(chariot.kind === 'horse' ? 'Mount the horse' : 'Ride the chariot');
       if (this.input.justPressed('interact') || this.input.justPressed('mount')) this.mountChariot(chariot);
     } else if (near && !scanning) {
@@ -1215,6 +1268,22 @@ class Game {
     const dot = document.querySelector('.mm-key [data-k="pin"]');
     const row = dot?.parentElement;
     if (row) row.hidden = !on;
+  }
+
+  /**
+   * Tell the score how much the moment is asking of it.
+   *
+   * Shades closing in is the loudest thing that can happen to you, so it wins.
+   * Below that, a gallop carries its own momentum and the music keeps pace
+   * with it. Standing still in a field asks for nothing, and the conductor
+   * takes its time letting go, so this never flickers.
+   */
+  private updateScoreIntensity(): void {
+    let want = 0;
+    if (this.combat.engaged) want = 1;
+    else if (this.ridingChariot) want = Math.min(0.62, Math.abs(this.ridingChariot.speed) / 24);
+    else if (this.player.state === 'vimana' || this.player.state === 'glide') want = 0.45;
+    audio.setMusicIntensity(want);
   }
 
   /** Keep the pin's marker on screen, and retire the pin once you arrive. */
@@ -1678,6 +1747,7 @@ class Game {
 
   /** Set down at the region's landing terrace, at full strength. Nothing is lost. */
   private overwhelmed(): void {
+    this.leaveVehicle();
     const zone = this.currentZone ?? this.world.zoneAt(this.player.position.x, this.player.position.z);
     const pad = zone ? this.world.padFor(zone.id) : undefined;
     if (pad) this.player.teleportTo(pad.position.x + 6, pad.position.z + 6);
@@ -1772,6 +1842,7 @@ class Game {
   private travelTo(zoneId: string): void {
     const zone = getZone(zoneId);
     if (!zone) return;
+    this.leaveVehicle();
     const pad = this.world.padFor(zone.id);
     const target = pad ? pad.position : new THREE.Vector3(zone.center[0], 0, zone.center[1]);
     this.player.teleportTo(target.x, target.z + 14);

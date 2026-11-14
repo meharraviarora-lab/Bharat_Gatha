@@ -32,10 +32,17 @@ interface Session {
 /** How far ahead of the clock to schedule, in seconds. */
 const LOOKAHEAD = 1.6;
 
+/** How fast the score is allowed to change its mind, in intensity per second. */
+const INTENSITY_RISE = 0.9;
+const INTENSITY_FALL = 0.22;
+
 export class Conductor {
   private current: Session | null = null;
   private readonly retiring: Session[] = [];
   private timer: ReturnType<typeof setInterval> | null = null;
+  private intensityTarget = 0;
+  private intensity = 0;
+  private lastPump = 0;
 
   constructor(
     private readonly ctx: BaseAudioContext,
@@ -104,8 +111,28 @@ export class Conductor {
   }
 
   /** Schedule everything due before `until`. Called by a timer in play and in one go offline. */
+  /**
+   * How hard the music should be pushing, 0 to 1. Set it as often as you like;
+   * the conductor eases towards it rather than jumping. It rises quickly and
+   * lets go slowly: music should notice trouble at once and then take its time
+   * calming down, the way a person does.
+   */
+  setIntensity(value: number): void {
+    this.intensityTarget = Math.max(0, Math.min(1, value));
+  }
+
   pump(until: number): void {
     const s = this.current;
+    // Ease towards the target. Driven off the audio clock, not frame time, so
+    // it behaves the same in an offline render as it does live.
+    const now = this.ctx.currentTime;
+    const dt = this.lastPump === 0 ? 0 : Math.max(0, Math.min(1, now - this.lastPump));
+    this.lastPump = now;
+    const gap = this.intensityTarget - this.intensity;
+    const rate = gap > 0 ? INTENSITY_RISE : INTENSITY_FALL;
+    this.intensity += Math.sign(gap) * Math.min(Math.abs(gap), rate * dt);
+    if (s) s.composer.intensity = this.intensity;
+
     if (s) {
       while (s.nextBar < until) {
         const bar = s.composer.nextBar();

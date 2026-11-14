@@ -172,6 +172,17 @@ export class AudioEngine {
     this.conductor?.stop();
   }
 
+  /**
+   * How hard the score should be pushing, 0 to 1 — call it every frame.
+   *
+   * It changes how the piece is played, never what is being played: the tabla
+   * comes in sooner, the laya lifts, the strokes land harder. Safe to call
+   * before the audio context exists, which it does not until the first click.
+   */
+  setMusicIntensity(value: number): void {
+    this.conductor?.setIntensity(value);
+  }
+
   // ------------------------------------------------------------------- sfx
 
   /** Short plucked tone — the backbone of both melody and UI feedback. */
